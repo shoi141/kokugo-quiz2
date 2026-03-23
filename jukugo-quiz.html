@@ -335,6 +335,7 @@ function App() {
   useEffect(() => {
     try { const s=localStorage.getItem(STORAGE_KEY); if(s) setBest(parseInt(s)||0); } catch(_) {}
     setReviewBank(JSON.parse(localStorage.getItem('rv_jukugo')||'[]'));
+    setReviewBank(JSON.parse(localStorage.getItem('rv_jukugo')||'[]'));
   }, []);
   const saveBest = v => { try { localStorage.setItem(STORAGE_KEY, String(v)); } catch(_) {} };
 
