@@ -239,7 +239,9 @@ function SelectAnswer({ problem, checked, userAnswer, onAnswer }) {
 }
 
 function App() {
+  const QUIZ_KEY = "sankuji";
   const [mode,setMode]     = useState("setup");
+  const [reviewBank,setReviewBank] = useState([]);
   const [diff,setDiff]     = useState("mix");
   const [totalQ,setTotalQ] = useState(10);
   const [problems,setProblems] = useState([]);
