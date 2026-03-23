@@ -259,6 +259,21 @@ function App() {
     setReviewBank(JSON.parse(localStorage.getItem('rv_sankuji')||'[]'));
     setReviewBank(JSON.parse(localStorage.getItem('rv_sankuji')||'[]'));
   },[]);
+
+  const startReview = () => {
+    const bank = JSON.parse(localStorage.getItem('rv_sankuji')||'[]');
+    setReviewBank(bank);
+    if(bank.length === 0){ setMode("setup"); return; }
+    const reshuffled = bank.map(p => {
+      const correctOpt = p.options[p.answer];
+      const opts = shuffle([...p.options]);
+      return {...p, options: opts, answer: opts.indexOf(correctOpt)};
+    });
+    setProblems(reshuffled);
+    setCurrent(0); setScore(0); setStreak(0);
+    setChecked(false); setUserAnswer(null); setCeleb(false);
+    setMode("review");
+  };
   const saveBest=v=>{try{localStorage.setItem(STORAGE_KEY,String(v));}catch(_){}};
 
   const startQuiz=()=>{
