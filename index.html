@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>国語クイズ</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  body { background: #fdf2f8; }
+  .portal-wrap {
+    min-height: 100vh; padding: 20px 16px;
+    max-width: 480px; margin: 0 auto;
+  }
+  .portal-header {
+    text-align: center; margin-bottom: 28px;
+  }
+  .portal-emoji { font-size: 56px; margin-bottom: 8px; }
+  .portal-title {
+    font-size: 26px; font-weight: 900;
+    color: #581c87; margin: 0 0 4px;
+  }
+  .portal-sub { font-size: 13px; color: #9ca3af; margin: 0; }
+  .section-label {
+    font-size: 12px; font-weight: 900;
+    color: #9ca3af; letter-spacing: 0.08em;
+    margin: 24px 0 10px; text-transform: uppercase;
+  }
+  .quiz-grid { display: flex; flex-direction: column; gap: 10px; }
+  .quiz-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px; border-radius: 16px;
+    background: #fff; border: none; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    text-decoration: none; color: inherit;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .quiz-card:active { transform: translateY(2px); box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+  .quiz-card-emoji { font-size: 32px; flex-shrink: 0; }
+  .quiz-card-name { font-size: 16px; font-weight: 900; color: #1f2937; margin-bottom: 2px; }
+  .quiz-card-desc { font-size: 12px; color: #6b7280; }
+  .quiz-card-arrow { margin-left: auto; font-size: 18px; color: #d1d5db; flex-shrink: 0; }
+  .coming-soon { opacity: 0.45; cursor: default; }
+  .badge-soon {
+    font-size: 10px; font-weight: bold;
+    background: #f3f4f6; color: #9ca3af;
+    padding: 2px 8px; border-radius: 99px; margin-left: 6px;
+  }
+  .portal-footer {
+    text-align: center; margin-top: 32px;
+    font-size: 12px; color: #d1d5db;
+  }
+  .portal-footer a { color: #a855f7; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="portal-wrap">
+  <div class="portal-header">
+    <div class="portal-emoji">📖</div>
+    <h1 class="portal-title">国語クイズ</h1>
+    <p class="portal-sub">中学入試レベルの国語知識を練習しよう</p>
+  </div>
+
+  <div class="section-label">📝 漢字・熟語</div>
+  <div class="quiz-grid">
+    <a class="quiz-card" href="jukugo-quiz.html">
+      <span class="quiz-card-emoji">🔤</span>
+      <div>
+        <div class="quiz-card-name">二字熟語</div>
+        <div class="quiz-card-desc">組み立て（6分類）・意味・中学入試頻出語</div>
+      </div>
+      <span class="quiz-card-arrow">›</span>
+    </a>
+
+    <a class="quiz-card" href="sankuji-quiz.html">
+      <span class="quiz-card-emoji">📗</span>
+      <div>
+        <div class="quiz-card-name">三字熟語</div>
+        <div class="quiz-card-desc">組み立て5分類・打ち消し語（不・無・非・未）</div>
+      </div>
+      <span class="quiz-card-arrow">›</span>
+    </a>
+
+    <a class="quiz-card" href="yoji-quiz.html">
+      <span class="quiz-card-emoji">📙</span>
+      <div>
+        <div class="quiz-card-name">四字熟語</div>
+        <div class="quiz-card-desc">意味・組み立て・漢数字補充・誤字訂正</div>
+      </div>
+      <span class="quiz-card-arrow">›</span>
+    </a>
+
+    <div class="quiz-card coming-soon">
+      <span class="quiz-card-emoji">✏️</span>
+      <div>
+        <div class="quiz-card-name">漢字の読み書き <span class="badge-soon">準備中</span></div>
+        <div class="quiz-card-desc">入試頻出の漢字を練習</div>
+      </div>
+      <span class="quiz-card-arrow">›</span>
+    </div>
+
+    <div class="quiz-card coming-soon">
+      <span class="quiz-card-emoji">🔗</span>
+      <div>
+        <div class="quiz-card-name">類義語・対義語 <span class="badge-soon">準備中</span></div>
+        <div class="quiz-card-desc">意味が似た言葉・反対の言葉</div>
+      </div>
+      <span class="quiz-card-arrow">›</span>
+    </div>
+  </div>
+
+  <div class="section-label">📚 文法・語句</div>
+  <div class="quiz-grid">
+    <div class="quiz-card coming-soon">
+      <span class="quiz-card-emoji">🗣️</span>
+      <div>
+        <div class="quiz-card-name">ことわざ・慣用句 <span class="badge-soon">準備中</span></div>
+        <div class="quiz-card-desc">入試頻出のことわざ・慣用句の意味</div>
+      </div>
+      <span class="quiz-card-arrow">›</span>
+    </div>
+
+    <div class="quiz-card coming-soon">
+      <span class="quiz-card-emoji">📐</span>
+      <div>
+        <div class="quiz-card-name">品詞・文法 <span class="badge-soon">準備中</span></div>
+        <div class="quiz-card-desc">品詞の分類・活用など</div>
+      </div>
+      <span class="quiz-card-arrow">›</span>
+    </div>
+  </div>
+
+  <div class="portal-footer">
+    <a href="https://shoi141.github.io/quiz-portal/">← トップへもどる</a>
+  </div>
+</div>
+</body>
+</html>

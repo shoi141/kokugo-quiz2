@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>四字熟語 国語クイズ</title>
+<link rel="stylesheet" href="common.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script>
+function randInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function randomStars(n){return Array.from({length:n},()=>["⭐","🌟","✨"][randInt(0,2)]).join(" ");}
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+</script>
+<style>
+  body { background: #fff7ed; }
+  .rika-root {
+    min-height: 100vh; background: #fff7ed;
+    padding: 12px; max-width: 480px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .select-grid { display: flex; flex-direction: column; gap: 8px; }
+  .select-btn {
+    width: 100%; padding: 13px 16px;
+    border: 2px solid #e5e7eb; border-radius: 14px;
+    background: #fff; cursor: pointer;
+    font-size: 13px; font-weight: bold; text-align: left;
+    font-family: inherit;
+  }
+  .select-btn.correct { background: #d1fae5; border-color: #10b981; color: #065f46; }
+  .select-btn.wrong   { background: #fee2e2; border-color: #ef4444; color: #991b1b; opacity: 0.7; }
+  .select-btn.show-correct { background: #d1fae5; border-color: #10b981; color: #065f46; }
+  .explanation-card {
+    background: #fef3c7; border: 1.5px solid #f59e0b;
+    border-radius: 12px; padding: 12px 14px;
+    font-size: 13px; color: #78350f; line-height: 1.9;
+  }
+  .diff-btn-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .diff-card-btn {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border-radius: 14px;
+    cursor: pointer; text-align: left; border: 2px solid transparent;
+    font-family: inherit; background: #f9fafb;
+  }
+  .diff-card-btn .diff-name { font-weight: 900; font-size: 15px; }
+  .diff-card-btn .diff-desc { font-size: 11px; color: #6b7280; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// ─── 問題バンク ────────────────────────────────────────────
+
+// 四字熟語 意味問題 [熟語, 読み, 正解の意味, 不正解3つ]
+const YOJI_MEANING = [
+  ["一石二鳥","いっせきにちょう","一つの行動で二つの利益を得ること",["二つのことを同時に始めること","一人で二人分の仕事をすること","石を二回なげること"]],
+  ["七転八起","しちてんはっき","何度失敗してもくじけず立ち上がること",["七回転んで八回休むこと","失敗を七回くり返すこと","八方向に動き回ること"]],
+  ["以心伝心","いしんでんしん","言葉を使わずに気持ちが通じ合うこと",["心を鍛えて強くなること","文章で気持ちを伝えること","遠くにいる人に連絡すること"]],
+  ["五里霧中","ごりむちゅう","状況がわからず、どうすればよいかわからないこと",["霧の中を五里歩くこと","道に迷って帰れなくなること","遠い場所に行くこと"]],
+  ["温故知新","おんこちしん","昔のことをよく学んで、新しい知識や見解を得ること",["古いものより新しいものを大切にすること","昔話を子どもに伝えること","温かい場所で新しいことを学ぶこと"]],
+  ["自業自得","じごうじとく","自分の行いの結果を自分で受けること（主に悪い意味）",["自分で仕事をして利益を得ること","みんなで協力して成果を上げること","努力すれば必ず報われること"]],
+  ["馬耳東風","ばじとうふう","人の言葉や意見を聞き流して気にしないこと",["馬が東の風に向かって走ること","良い話を聞いて喜ぶこと","春風のようにさわやかなこと"]],
+  ["竜頭蛇尾","りゅうとうだび","初めは勢いがよいが、終わりはふるわないこと",["竜と蛇が戦うこと","頭と尻尾を同時に動かすこと","強い者が弱い者を助けること"]],
+  ["前代未聞","ぜんだいみもん","今まで聞いたことがないほど珍しいこと",["昔から有名な話のこと","前の時代に起きた事件のこと","未来のことを予言すること"]],
+  ["玉石混交","ぎょくせきこんこう","すぐれたものとそうでないものが混じっていること",["宝石と石を一緒に売ること","良い石で作った建物のこと","混乱した状況のこと"]],
+  ["言語道断","ごんごどうだん","もってのほかで、言葉にもならないほどひどいこと",["言葉で道を説明すること","話し合いで問題を解決すること","言葉が通じないこと"]],
+  ["日進月歩","にっしんげっぽ","日に日に、どんどん進歩すること",["毎日少しずつ練習すること","一日中歩き続けること","月が出るたびに変化すること"]],
+  ["我田引水","がでんいんすい","自分に都合よく考えたり行動したりすること",["田んぼに水を引くこと","自分の土地を広げること","農業で成功すること"]],
+  ["十人十色","じゅうにんといろ","人それぞれ考えや好みがちがうこと",["十人で一つのことをすること","たくさんの色を使うこと","みんなが同じ意見であること"]],
+  ["三寒四温","さんかんしおん","冬に寒い日が三日続いたあと、暖かい日が四日続くこと",["一年に三回寒い時期があること","夏と冬を四回ずつくり返すこと","寒暖差が激しい夏のこと"]],
+  ["異口同音","いくどうおん","多くの人が同じことを言うこと",["口から音を出すこと","外国語と日本語が混じること","意見がバラバラなこと"]],
+  ["一長一短","いちょういったん","よい面もあれば悪い面もあること",["一つのことを長い時間かけてすること","ひとつひとつ丁寧にやること","長所だけがあること"]],
+  ["自画自賛","じがじさん","自分で自分をほめること",["自分の絵を飾ること","自分でお金を稼ぐこと","自分の成績を記録すること"]],
+  ["四面楚歌","しめんそか","周りがすべて敵ばかりで、助けのない状態",["四方向から歌が聞こえること","みんなで力を合わせること","広い場所で歌うこと"]],
+  ["針小棒大","しんしょうぼうだい","小さなことを大げさに言うこと",["針で縫って棒で固定すること","小さなものを大切にすること","道具を正しく使うこと"]],
+  ["大器晩成","たいきばんせい","大きな器の人物はおそく成功すること",["器の大きさを測ること","夜遅くに完成させること","長い時間をかけて作ること"]],
+  ["付和雷同","ふわらいどう","自分の意見を持たず、人の意見にすぐ従うこと",["雷が鳴ると同時に嵐が来ること","みんなで同じ行動をすること","一緒に声を合わせること"]],
+  ["臨機応変","りんきおうへん","場の状況に合わせて適切に対応すること",["急いで変化すること","機械を動かすこと","変わったことに驚くこと"]],
+  ["一期一会","いちごいちえ","一生に一度の出会いを大切にすること",["一回だけ会うこと","毎回同じ人に会うこと","偶然の出会いを楽しむこと"]],
+  ["試行錯誤","しこうさくご","失敗をくり返しながら解決策を探ること",["試験で間違えること","考えながら慎重に進むこと","何度も練習すること"]],
+  ["一致団結","いっちだんけつ","みんなが心を一つにして協力すること",["一人でがんばること","順番に協力すること","意見が分かれること"]],
+  ["起死回生","きしかいせい","絶体絶命の状況を立て直すこと",["死んだふりをすること","生き返ること","ゆっくり回復すること"]],
+  ["絶体絶命","ぜったいぜつめい","逃げ場がなく、どうにもならない状況",["体が絶好調なこと","命令を絶対に守ること","完全に自由な状態"]],
+  ["一心不乱","いっしんふらん","一つのことに集中して乱れないこと",["心が乱れてしまうこと","一人でぼんやりすること","多くのことを同時にすること"]],
+  ["獅子奮迅","ししふんじん","ライオンが荒れ狂うような勢いで活躍すること",["ライオンが眠るさま","ゆっくりと動くこと","静かに観察すること"]],
+  ["天真爛漫","てんしんらんまん","飾らず、純粋で明るいこと",["暗くて内気なこと","計算高いこと","かしこまっていること"]],
+  ["質実剛健","しつじつごうけん","飾り気なく、心身ともにたくましいこと",["ぜいたくで優雅なこと","繊細で弱いこと","おしゃれを好むこと"]],
+  ["捲土重来","けんどちょうらい","一度敗れた者が勢いを取り戻して再び戦うこと",["土をかぶって隠れること","軽い気持ちで再挑戦すること","ゆっくりと立ち直ること"]],
+  ["千載一遇","せんざいいちぐう","千年に一度あるかないかのよい機会",["何千回も機会があること","一度だけのつまらない機会","千年続く長い時間"]],
+  ["岡目八目","おかめはちもく","第三者のほうが物事を正確に見られること",["八方向から目で見ること","目が八つある生き物のこと","遠くからでも八つ見えること"]],
+  ["傍若無人","ぼうじゃくぶじん","他人のことをまるで気にせず、勝手に振る舞うこと",["無人の場所で静かにすること","人のいる場所を嫌うこと","他人の言うことを素直に聞くこと"]],
+  ["切磋琢磨","せっさたくま","互いに励まし合って、向上し合うこと",["一人で黙々と努力すること","石を切って磨くこと","競い合って傷つけ合うこと"]],
+  ["孤軍奮闘","こぐんふんとう","援軍もなく一人で懸命に戦うこと",["大勢で力を合わせること","安全な場所で指示を出すこと","逃げながら戦うこと"]],
+  ["換骨奪胎","かんこつだったい","他人の作品のアイデアをもとに新しい作品を作ること",["骨を入れ替える手術のこと","体ごと生まれ変わること","完全にオリジナルで作ること"]],
+  ["明鏡止水","めいきょうしすい","心が澄み切って落ち着いていること",["鏡が止まって動かないこと","水が透明になること","怒りが爆発すること"]],
+  ["無我夢中","むがむちゅう","我を忘れて夢中になること",["夢を見て眠ること","ぼんやりと空想すること","静かに瞑想すること"]],
+];
+
+// 漢数字クイズ [熟語, 読み, ヒント, 意味]
+const KANJI_NUMBER = [
+  ["一石二鳥","いっせきにちょう","（　）石（　）鳥","一つの行動で二つの利益を得る。"],
+  ["七転八起","しちてんはっき","（　）転（　）起","何度転んでも起き上がること。"],
+  ["三寒四温","さんかんしおん","（　）寒（　）温","冬の寒暖をくり返す気候。"],
+  ["十人十色","じゅうにんといろ","（　）人（　）色","人それぞれ考えが違う。"],
+  ["一長一短","いちょういったん","（　）長（　）短","よい点も悪い点もある。"],
+  ["五里霧中","ごりむちゅう","（　）里霧中","状況がわからず途方に暮れる。"],
+  ["四面楚歌","しめんそか","（　）面楚歌","周りがすべて敵ばかりの状態。"],
+  ["二束三文","にそくさんもん","（　）束（　）文","非常に安いこと。"],
+  ["百発百中","ひゃっぱつひゃくちゅう","（　）発（　）中","必ず思い通りになること。"],
+  ["一期一会","いちごいちえ","（　）期（　）会","一生に一度の出会いを大切に。"],
+  ["四字熟語","よじじゅくご","（　）字熟語","四つの漢字からなる熟語。"],
+  ["三日坊主","みっかぼうず","（　）日坊主","飽きやすく長続きしないこと。"],
+  ["一刀両断","いっとうりょうだん","（　）刀（　）断","きっぱりと決断すること。"],
+  ["八方美人","はっぽうびじん","（　）方美人","誰にでも愛想よく振る舞う人。"],
+  ["千載一遇","せんざいいちぐう","（　）載（　）遇","千年に一度の絶好の機会。"],
+  ["一日千秋","いちにちせんしゅう","（　）日（　）秋","待ち望む気持ちの切実なさま。"],
+  ["三人寄れば","さんにんよれば","（　）人寄れば文殊の知恵","三人集まれば良い知恵が出る。"],
+  ["七難八苦","しちなんはっく","（　）難（　）苦","多くの苦しみや困難。"],
+  ["一網打尽","いちもうだじん","（　）網打尽","一度に全部つかまえること。"],
+  ["五臓六腑","ごぞうろっぷ","（　）臓（　）腑","体の内臓全体のこと。"],
+];
+
+// 誤字訂正 [誤りの熟語, 読み, 正しい熟語, 間違いの説明, 解説]
+const GOJI_CORRECTION = [
+  ["温古知新","おんこちしん","温故知新","「古」→「故」","「故」は昔・もとの意味。昔を学んで新知識を得る。"],
+  ["意気消千","いきしょうちん","意気消沈","「千」→「沈」","「沈」はしずむ意味。気持ちが落ち込むこと。"],
+  ["心気一転","しんきいってん","心機一転","「気」→「機」","「機」はきっかけの意味。気持ちをすっかり切り替えること。"],
+  ["前代未問","ぜんだいみもん","前代未聞","「問」→「聞」","「聞」は聞くこと。今まで聞いたことがないほど珍しい。"],
+  ["諸行無情","しょぎょうむじょう","諸行無常","「情」→「常」","「常」は変わらないこと。すべては移り変わる。"],
+  ["異句同音","いくどうおん","異口同音","「句」→「口」","「口」はくち。多くの人が同じことを言うこと。"],
+  ["一石二長","いっせきにちょう","一石二鳥","「長」→「鳥」","石一つで二羽の鳥を→一つで二つの利益。"],
+  ["竜頭馬尾","りゅうとうばび","竜頭蛇尾","「馬」→「蛇」","竜の頭と蛇の尾→始めは立派で終わりがふるわない。"],
+  ["付和雷道","ふわらいどう","付和雷同","「道」→「同」","「同」は同じにすること。人の意見にすぐ従うこと。"],
+  ["臨機応返","りんきおうへん","臨機応変","「返」→「変」","「変」は変えること。状況に合わせて対応すること。"],
+  ["我田引火","がでんいんすい","我田引水","「火」→「水」","「水」を引く→自分に都合よく行動すること。"],
+  ["天真爛慢","てんしんらんまん","天真爛漫","「慢」→「漫」","「漫」はあふれるさま。純粋で明るいこと。"],
+  ["質実剛建","しつじつごうけん","質実剛健","「建」→「健」","「健」は健康・たくましい意味。"],
+  ["孤軍奮投","こぐんふんとう","孤軍奮闘","「投」→「闘」","「闘」は戦うこと。一人で懸命に戦うこと。"],
+  ["一死回生","きしかいせい","起死回生","「一」→「起」","「起」はおこすこと。絶体絶命を立て直すこと。"],
+  ["明鏡止永","めいきょうしすい","明鏡止水","「永」→「水」","「水」が止まって澄む→心が澄み切ったさま。"],
+  ["切磋琢末","せっさたくま","切磋琢磨","「末」→「磨」","「磨」はみがくこと。互いに励まし合って向上すること。"],
+  ["四面楚化","しめんそか","四面楚歌","「化」→「歌」","「歌」は歌のこと。周りが敵ばかりの状態。"],
+  ["無我無中","むがむちゅう","無我夢中","「無中」→「夢中」","「夢中」は夢の中のように熱中すること。"],
+  ["千載一逢","せんざいいちぐう","千載一遇","「逢」→「遇」","「遇」はめぐりあうこと。千年に一度の機会。"],
+  ["一致断結","いっちだんけつ","一致団結","「断」→「団」","「団」は集まること。みんなが心を一つにして協力すること。"],
+  ["岡目入目","おかめはちもく","岡目八目","「入」→「八」","「八」は数字の八。第三者のほうが正確に見られること。"],
+];
+
+// 四字熟語 組み立て [熟語, 読み, タイプ, 解説]
+const YOJI_TYPES = {
+  Y1: "似た意味の二字熟語の組み合わせ（類義）",
+  Y2: "反対の意味の二字熟語の組み合わせ（対義）",
+  Y3: "前の二字が後の二字を修飾する",
+  Y4: "四つの漢字が対等にならぶ",
+};
+const YOJI_STRUCTURE = [
+  ["喜怒哀楽","きどあいらく","Y4","喜・怒・哀・楽が対等にならぶ。"],
+  ["春夏秋冬","しゅんかしゅうとう","Y4","春・夏・秋・冬が対等にならぶ。"],
+  ["東西南北","とうざいなんぼく","Y4","東・西・南・北が対等にならぶ。"],
+  ["起承転結","きしょうてんけつ","Y4","起・承・転・結が対等にならぶ。"],
+  ["自由自在","じゆうじざい","Y1","自由＋自在→似た意味の組み合わせ。"],
+  ["永久不変","えいきゅうふへん","Y1","永久＋不変→似た意味。"],
+  ["森羅万象","しんらばんしょう","Y1","森羅＋万象→似た意味（あらゆるもの）。"],
+  ["弱肉強食","じゃくにくきょうしょく","Y2","弱肉＋強食→反対の意味。"],
+  ["天下無敵","てんかむてき","Y3","天下が無敵を修飾。"],
+  ["大器晩成","たいきばんせい","Y3","大器が晩成を修飾。"],
+  ["一心不乱","いっしんふらん","Y3","一心が不乱を修飾。"],
+  ["前代未聞","ぜんだいみもん","Y3","前代が未聞を修飾。"],
+  ["古今東西","ここんとうざい","Y4","古・今・東・西が対等にならぶ。"],
+  ["半信半疑","はんしんはんぎ","Y1","半信（信じる）＋半疑（疑う）→反対とも言える。"],
+  ["一進一退","いっしんいったい","Y2","進む＋退く→反対の意味。"],
+  ["晴耕雨読","せいこううどく","Y2","晴れに耕す＋雨に読む→対の意味。"],
+  ["優勝劣敗","ゆうしょうれっぱい","Y2","優勝（勝つ）＋劣敗（負ける）→反対。"],
+  ["言行一致","げんこういっち","Y3","言行が一致を修飾。"],
+  ["花鳥風月","かちょうふうげつ","Y4","花・鳥・風・月が対等にならぶ。"],
+  ["明鏡止水","めいきょうしすい","Y1","明鏡＋止水→似た意味（澄み切った心）。"],
+];
+</script>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const STORAGE_KEY = "yoji_best_streak";
+const Q_OPTIONS = [5, 10, 15, 20];
+const BTN = "linear-gradient(135deg,#f97316,#ea580c)";
+
+function pickProblems(diff, total) {
+  let pool = [];
+  const ALL_NUMS = ["一","二","三","四","五","六","七","八","九","十","百"];
+
+  if (diff === "meaning" || diff === "mix") {
+    YOJI_MEANING.forEach(([word, read, correct, wrongs]) => {
+      const opts = shuffle([correct, ...wrongs]);
+      pool.push({
+        qtype:"select", color:"#7c3aed",
+        title:"意味を選ぼう", word, read,
+        question:`「${word}（${read}）」の意味はどれですか？`,
+        options: opts, answer: opts.indexOf(correct),
+        explanation:`「${word}」\n意味：${correct}`,
+      });
+    });
+  }
+
+  if (diff === "structure" || diff === "mix") {
+    const typeKeys = Object.keys(YOJI_TYPES);
+    YOJI_STRUCTURE.forEach(([word, read, type, exp]) => {
+      const opts = shuffle(typeKeys.map(k => YOJI_TYPES[k]));
+      pool.push({
+        qtype:"select", color:"#b45309",
+        title:"組み立てを選ぼう", word, read,
+        question:`「${word}（${read}）」の組み立てはどれですか？`,
+        options: opts, answer: opts.indexOf(YOJI_TYPES[type]),
+        explanation:`【${YOJI_TYPES[type]}】\n${exp}`,
+      });
+    });
+  }
+
+  if (diff === "number" || diff === "mix") {
+    KANJI_NUMBER.forEach(([word, read, hint, meaning]) => {
+      const makeWrong = (w, shift) =>
+        w.replace(/[一二三四五六七八九十百]/g, m => {
+          const i = ALL_NUMS.indexOf(m);
+          return ALL_NUMS[(i + shift + ALL_NUMS.length) % ALL_NUMS.length];
+        });
+      const opts = shuffle([word, makeWrong(word,1), makeWrong(word,2), makeWrong(word,3)]);
+      if(!opts.includes(word)) opts[0]=word;
+      // 大見出しは□で表示（答えを隠す）
+      const displayWord = word.replace(/[一二三四五六七八九十百]/g, "□");
+      pool.push({
+        qtype:"select", color:"#065f46",
+        title:"漢数字を入れて完成",
+        word: displayWord,
+        read: "？？？？",
+        question:`空欄に漢数字を入れて四字熟語を完成させましょう。\n${hint}\n（意味のヒント：${meaning}）`,
+        options: opts, answer: opts.indexOf(word),
+        explanation:`正解：「${word}（${read}）」\n${meaning}`,
+      });
+    });
+  }
+
+  if (diff === "goji" || diff === "mix") {
+    // 誤字訂正用の紛らわしい誤り選択肢
+    const gojiWrongsMap = {
+      "温故知新": ["温古知新","温故知心","温古知心"],
+      "意気消沈": ["意気消千","意気小沈","意気消深"],
+      "心機一転": ["心気一転","心機一点","心気一点"],
+      "前代未聞": ["前代未問","前代末聞","前代未文"],
+      "諸行無常": ["諸行無情","諸行無情","諸行無状"],
+      "異口同音": ["異句同音","異口同意","異句同意"],
+      "一石二鳥": ["一石二長","一岩二鳥","一石三鳥"],
+      "竜頭蛇尾": ["竜頭馬尾","竜頭蛇体","竜首蛇尾"],
+    };
+    GOJI_CORRECTION.forEach(([wrong, read, correct, change, exp]) => {
+      const wrongs = gojiWrongsMap[correct] || [wrong,
+        correct.split("").map((ch,i)=>i===1?"古":ch).join(""),
+        correct.split("").map((ch,i)=>i===2?"大":ch).join(""),
+      ];
+      const candidates = [correct, ...wrongs].slice(0,4);
+      const opts = shuffle(candidates);
+      if(!opts.includes(correct)) opts[0]=correct;
+      pool.push({
+        qtype:"select", color:"#991b1b",
+        title:"誤字を見つけよう", word: wrong, read,
+        question:`「${wrong}（${read}）」には漢字の誤りが一字あります。\n正しいものはどれですか？`,
+        options: opts.slice(0,4), answer: opts.slice(0,4).indexOf(correct),
+        explanation:`正解：「${correct}」\n誤り：${change}\n${exp}`,
+      });
+    });
+  }
+
+  const shuffled = shuffle(pool);
+  const result = [];
+  const used = new Set();
+  while(result.length < total) {
+    const idx = Math.floor(Math.random() * shuffled.length);
+    if(!used.has(idx) || shuffled.length < total) {
+      used.add(idx);
+      result.push({...shuffled[idx]});
+    }
+  }
+  return result;
+}
+
+function SelectAnswer({ problem, checked, userAnswer, onAnswer }) {
+  return (
+    <div className="select-grid">
+      {problem.options.map((opt, i) => {
+        let cls = "select-btn";
+        if(checked){
+          if(i===problem.answer) cls+=" show-correct";
+          else if(i===userAnswer) cls+=" wrong";
+        }
+        return (
+          <button key={i} className={cls} onClick={()=>!checked&&onAnswer(i)}>
+            <span style={{color:"#6b7280",marginRight:"8px",fontWeight:"normal"}}>{"①②③④"[i]}</span>
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function App() {
+  const [mode,setMode]     = useState("setup");
+  const [diff,setDiff]     = useState("mix");
+  const [totalQ,setTotalQ] = useState(10);
+  const [problems,setProblems] = useState([]);
+  const [current,setCurrent]   = useState(0);
+  const [score,setScore]       = useState(0);
+  const [streak,setStreak]     = useState(0);
+  const [best,setBest]         = useState(0);
+  const [checked,setChecked]   = useState(false);
+  const [userAnswer,setUserAnswer] = useState(null);
+  const [celeb,setCeleb]       = useState(false);
+  const [isCorrect,setIsCorrect] = useState(false);
+
+  useEffect(()=>{
+    try{const s=localStorage.getItem(STORAGE_KEY);if(s)setBest(parseInt(s)||0);}catch(_){}
+    setReviewBank(JSON.parse(localStorage.getItem('rv_yoji')||'[]'));
+  },[]);
+  const saveBest=v=>{try{localStorage.setItem(STORAGE_KEY,String(v));}catch(_){}};
+
+  const startQuiz=()=>{
+    setProblems(pickProblems(diff,totalQ));
+    setCurrent(0);setScore(0);setStreak(0);
+    setChecked(false);setUserAnswer(null);setCeleb(false);
+    setMode("quiz");
+  };
+
+  const problem=problems[current]||null;
+
+  const handleAnswer=ans=>{
+    if(checked)return;
+    setUserAnswer(ans);setChecked(true);
+    const ok=ans===problem.answer;
+    setIsCorrect(ok);
+    if(ok){
+      setScore(s=>s+1);const ns=streak+1;setStreak(ns);
+      if(ns>best){setBest(ns);saveBest(ns);}
+      setCeleb(true);setTimeout(()=>setCeleb(false),1800);
+      try{const _b=JSON.parse(localStorage.getItem('rv_yoji')||'[]');const _id=(problem.title||'')+'|'+(problem.question||'');const _i=_b.findIndex(x=>x._id===_id);if(_i>=0){_b[_i].ok=(_b[_i].ok||0)+1;if(_b[_i].ok>=5)_b.splice(_i,1);localStorage.setItem('rv_yoji',JSON.stringify(_b));}setReviewBank([..._b]);}catch(_e){}
+    }else{setStreak(0);
+      try{const _b=JSON.parse(localStorage.getItem('rv_yoji')||'[]');const _id=(problem.title||'')+'|'+(problem.question||'');if(!_b.find(x=>x._id===_id)){const _s={...problem,_id,ok:0};_b.push(_s);localStorage.setItem('rv_yoji',JSON.stringify(_b));}setReviewBank([..._b]);}catch(_e){}}
+  };
+
+  const nextQuestion=()=>{
+    const _end=current+1>=problems.length;
+    if(_end&&mode==="review"){const _b=JSON.parse(localStorage.getItem('rv_yoji')||'[]');setReviewBank([..._b]);if(_b.length>0){startReview();}else{setMode("graduated");}return;}
+    if(_end){setMode("result");return;}
+    setCurrent(c=>c+1);
+    setChecked(false);setUserAnswer(null);setCeleb(false);
+  };
+
+  const progress = problem ? (current/problems.length)*100 : 0;
+
+  const DIFF_OPTIONS = [
+    {key:"meaning",   emoji:"📙", name:"意味を選ぶ",       desc:"四字熟語の意味を4択で選ぶ（25語）"},
+    {key:"structure", emoji:"📘", name:"組み立てを選ぶ",   desc:"二字×二字の構造を分類する"},
+    {key:"number",    emoji:"🔢", name:"漢数字を入れて完成", desc:"（　）石（　）鳥 などの空欄を埋める"},
+    {key:"goji",      emoji:"🔍", name:"誤字訂正",          desc:"四字熟語の誤った漢字を見つける"},
+    {key:"mix",       emoji:"⭐", name:"ミックス",           desc:"全タイプからランダム出題"},
+  ];
+
+  if(mode==="setup") return(
+    <div className="setup-wrap" style={{background:"#fff7ed"}}>
+      <div className="setup-card">
+        <div className="setup-emoji">📙</div>
+        <h1 className="setup-title" style={{color:"#7c2d12"}}>四字熟語クイズ</h1>
+        <p className="setup-sub">意味・組み立て・漢数字・誤字訂正（中学入試レベル）</p>
+                <div style={{marginBottom:"16px"}}>
+          <button onClick={()=>{if(reviewBank.length>0)startReview();}}
+            style={{width:"100%",padding:"14px 16px",borderRadius:"14px",
+              cursor:reviewBank.length>0?"pointer":"default",
+              border:reviewBank.length>0?"2px solid #ef4444":"2px solid #e5e7eb",
+              background:reviewBank.length>0?"#fef2f2":"#f9fafb",
+              display:"flex",alignItems:"center",justifyContent:"space-between",
+              fontFamily:"inherit",opacity:reviewBank.length===0?0.45:1}}>
+            <div style={{textAlign:"left"}}>
+              <div style={{fontWeight:"900",fontSize:"15px",color:reviewBank.length>0?"#b91c1c":"#374151"}}>{"📚 復習モード"}</div>
+              {reviewBank.length>0&&<div style={{fontSize:"11px",color:"#ef4444",marginTop:"2px"}}>{"タップして今すぐ開始！"}</div>}
+            </div>
+            <span style={{background:reviewBank.length>0?"#ef4444":"#d1d5db",color:"#fff",borderRadius:"99px",padding:"4px 12px",fontSize:"13px",fontWeight:"bold"}}>
+              {reviewBank.length>0?reviewBank.length+"問":"なし"}
+            </span>
+          </button>
+          {reviewBank.length===0&&<div style={{fontSize:"11px",color:"#9ca3af",textAlign:"center",marginTop:"4px"}}>{"間違えた問題が溜まるとここで復習できます"}</div>}
+        </div>
+        {best>0&&<div className="best-badge" style={{background:"#ffedd5",border:"1.5px solid #fb923c",color:"#7c2d12"}}>🏆 最高連続記録：<strong>{best}問</strong></div>}
+        <div className="qcount-section">分野を選ぶ</div>
+        <div className="diff-btn-row">
+          {DIFF_OPTIONS.map(d=>(
+            <button key={d.key} className="diff-card-btn"
+              style={{background:diff===d.key?"#ffedd5":"#f9fafb",
+                      border:diff===d.key?"2px solid #f97316":"2px solid #e5e7eb",
+                      boxShadow:diff===d.key?"0 3px 0 #f97316":"none"}}
+              onClick={()=>setDiff(d.key)}>
+              <span style={{fontSize:"22px"}}>{d.emoji}</span>
+              <div>
+                <div className="diff-name" style={{color:diff===d.key?"#7c2d12":"#1f2937"}}>{d.name}</div>
+                <div className="diff-desc">{d.desc}</div>
+              </div>
+              {diff===d.key&&<span style={{marginLeft:"auto",fontSize:"18px"}}>✅</span>}
+            </button>
+          ))}
+        </div>
+        <div className="qcount-section">何問やる？</div>
+        <div className="qcount-grid">
+          {Q_OPTIONS.map(n=>(
+            <button key={n} className="qcount-btn"
+              style={{border:totalQ===n?"2px solid #f97316":"2px solid #dee2e6",
+                      background:totalQ===n?"#f97316":"#f8f9fa",
+                      color:totalQ===n?"#fff":"#495057",
+                      boxShadow:totalQ===n?"0 3px 0 #ea580c":"none"}}
+              onClick={()=>setTotalQ(n)}>{n}問</button>
+          ))}
+        </div>
+        <button className="start-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #9a3412"}} onClick={startQuiz}>スタート！ 🚀</button>
+      </div>
+    </div>
+  );
+
+
+  if(mode === "graduated") return (
+    <div className="setup-wrap" style={{background:"#f0fdf4"}}>
+      <div className="setup-card">
+        <div className="setup-emoji">{"🎓"}</div>
+        <h2 className="setup-title" style={{color:"#166534"}}>{"復習バンク卒業！"}</h2>
+        <p style={{fontSize:"14px",color:"#16a34a",marginBottom:"16px",fontWeight:"bold"}}>{"すべての問題を5回正解しました！"}</p>
+        <div style={{background:"#dcfce7",borderRadius:"14px",padding:"16px",marginBottom:"16px",fontSize:"13px",color:"#166534",lineHeight:"1.8"}}>{"🌟 間違えた問題をすべてマスターしました！"}</div>
+        <button className="start-btn"
+          style={{background:"linear-gradient(135deg,#4ade80,#22c55e)",color:"#fff",boxShadow:"0 4px 0 #16a34a"}}
+          onClick={()=>setMode("setup")}>{"もどる"}</button>
+      </div>
+    </div>
+  );
+  if(mode==="result"){
+    const pct=Math.round((score/problems.length)*100);
+    return(
+      <div className="setup-wrap" style={{background:"#fff7ed"}}>
+        <div className="setup-card">
+          <div className="setup-emoji">{pct===100?"🏆":pct>=70?"🎉":"💪"}</div>
+          <h2 className="setup-title" style={{color:"#7c2d12"}}>おわり！</h2>
+          <p className="result-score">{problems.length}問中 <span className="result-big" style={{color:"#f97316"}}>{score}</span> 問正解</p>
+          <div className="pct-bar-bg" style={{background:"#ffedd5"}}><div className="pct-bar-fill" style={{background:BTN,width:`${pct}%`}}/></div>
+          <p className="pct-text">{pct}%</p>
+          <div className="streak-result-row">
+            <div className="streak-result-box"><div className="streak-result-label">この回の最高連続</div><div className="streak-result-val" style={{color:"#ef4444"}}>🔥 {streak}問</div></div>
+            <div className="streak-result-box"><div className="streak-result-label">歴代最高連続</div><div className="streak-result-val" style={{color:"#f59f00"}}>🏆 {best}問</div></div>
+          </div>
+          <div style={{display:"flex",gap:"8px",marginTop:"16px"}}>
+            <button className="start-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #9a3412"}} onClick={startQuiz}>もう一度</button>
+            <button className="start-btn" style={{background:"#868e96",color:"#fff",boxShadow:"0 4px 0 #495057"}} onClick={()=>setMode("setup")}>設定へ</button>
+          {reviewBank.length>0&&(
+            <button className="start-btn"
+              style={{background:"linear-gradient(135deg,#ef4444,#dc2626)",color:"#fff",
+                boxShadow:"0 4px 0 #991b1b",marginTop:"8px",width:"100%"}}
+              onClick={startReview}>{"続けて復習する 📚 ("}{reviewBank.length}{"問)"}</button>
+          )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if(!problem) return null;
+
+  return(
+    <div className="rika-root">
+      {celeb&&(
+        <div className="celeb-overlay">
+          <div className="celeb-box">
+            <div className="celeb-emoji">🎉</div>
+            <div className="celeb-text" style={{color:"#7c2d12"}}>せいかい！</div>
+            <div className="celeb-stars">{randomStars(5)}</div>
+            {streak>=3&&<div className="celeb-streak" style={{background:"#f97316"}}>🔥 {streak}れんぞく！</div>}
+            {streak===best&&streak>1&&<div className="celeb-streak" style={{background:"#f59f00",marginTop:"6px"}}>🏆 新記録！</div>}
+          </div>
+        </div>
+      )}
+      <div className="quiz-header">
+        <button className="back-btn" onClick={()=>setMode("setup")}>← もどる</button>
+        <span className="q-label">Q{current+1}<span className="q-total">/{problems.length}</span></span>
+        <span className="streak-badge">🔥{streak}</span>
+      </div>
+      <div className="progress-bar-bg">
+        <div className="progress-fill" style={{background:problem.color,width:`${progress}%`}}/>
+      </div>
+      <div className="problem-card" style={{borderTop:`5px solid ${problem.color}`}}>
+        <div style={{fontWeight:"900",fontSize:"12px",color:problem.color,marginBottom:"4px"}}>{problem.title}</div>
+        <div style={{fontSize:"28px",fontWeight:"900",textAlign:"center",padding:"12px 0 4px",letterSpacing:"0.1em"}}>{problem.word}</div>
+        <div style={{textAlign:"center",fontSize:"13px",color:"#6b7280",marginBottom:"12px"}}>（{problem.read}）</div>
+        <div style={{fontSize:"15px",fontWeight:"bold",lineHeight:"1.8",marginBottom:"12px",whiteSpace:"pre-line"}}>{problem.question}</div>
+        <SelectAnswer problem={problem} checked={checked} userAnswer={userAnswer} onAnswer={handleAnswer}/>
+      </div>
+      {checked&&(
+        <>
+          <div style={{textAlign:"center",fontSize:"18px",fontWeight:"900",color:isCorrect?"#10b981":"#ef4444"}}>
+            {isCorrect?"⭕ 正解！":"❌ 不正解"}
+          </div>
+          <div className="explanation-card">
+            <div style={{fontWeight:"900",marginBottom:"4px",fontSize:"12px",color:"#92400e"}}>💡 解説</div>
+            {problem.explanation.split("\n").map((line,i)=><div key={i}>{line}</div>)}
+          </div>
+          <button className="next-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #9a3412"}} onClick={nextQuestion}>
+            {current+1>=problems.length?"結果を見る 🎉":"つぎへ →"}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

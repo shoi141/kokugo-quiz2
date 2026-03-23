@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>三字熟語 国語クイズ</title>
+<link rel="stylesheet" href="common.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script>
+function randInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function randomStars(n){return Array.from({length:n},()=>["⭐","🌟","✨"][randInt(0,2)]).join(" ");}
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+</script>
+<style>
+  body { background: #f0f9ff; }
+  .rika-root {
+    min-height: 100vh; background: #f0f9ff;
+    padding: 12px; max-width: 480px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .select-grid { display: flex; flex-direction: column; gap: 8px; }
+  .select-btn {
+    width: 100%; padding: 13px 16px;
+    border: 2px solid #e5e7eb; border-radius: 14px;
+    background: #fff; cursor: pointer;
+    font-size: 13px; font-weight: bold; text-align: left;
+    font-family: inherit;
+  }
+  .select-btn.correct { background: #d1fae5; border-color: #10b981; color: #065f46; }
+  .select-btn.wrong   { background: #fee2e2; border-color: #ef4444; color: #991b1b; opacity: 0.7; }
+  .select-btn.show-correct { background: #d1fae5; border-color: #10b981; color: #065f46; }
+  .explanation-card {
+    background: #fef3c7; border: 1.5px solid #f59e0b;
+    border-radius: 12px; padding: 12px 14px;
+    font-size: 13px; color: #78350f; line-height: 1.9;
+  }
+  .diff-btn-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .diff-card-btn {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border-radius: 14px;
+    cursor: pointer; text-align: left; border: 2px solid transparent;
+    font-family: inherit; background: #f9fafb;
+  }
+  .diff-card-btn .diff-name { font-weight: 900; font-size: 15px; }
+  .diff-card-btn .diff-desc { font-size: 11px; color: #6b7280; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// ─── 問題バンク ────────────────────────────────────────────
+const SANKUJI_TYPES = {
+  S1: "三字が対等にならぶ（□＋□＋□）",
+  S2: "上の一字が下の二字を修飾する（□＋□□）",
+  S3: "上の二字が下の一字を修飾する（□□＋□）",
+  S4: "上の一字が下の二字を打ち消す（不・無・非・未＋□□）",
+  S5: "下の二字が上の一字の目的語・対象になる（□＋□□）",
+};
+
+// [熟語, 読み, タイプ, 解説]
+const SANKUJI_STRUCTURE = [
+  // S1: 三字対等
+  ["市町村","しちょうそん","S1","市・町・村が対等にならぶ。"],
+  ["衣食住","いしょくじゅう","S1","衣・食・住が対等にならぶ。"],
+  ["松竹梅","しょうちくばい","S1","松・竹・梅が対等にならぶ。"],
+  ["天地人","てんちじん","S1","天・地・人が対等にならぶ。"],
+  ["心技体","しんぎたい","S1","心・技・体が対等にならぶ。"],
+  ["朝昼晩","あさひるばん","S1","朝・昼・晩が対等にならぶ。"],
+  ["金銀銅","きんぎんどう","S1","金・銀・銅が対等にならぶ。"],
+  ["父母子","ふぼし","S1","父・母・子が対等にならぶ。"],
+  ["海山川","うみやまかわ","S1","海・山・川が対等にならぶ。"],
+  // S2: 上1字が下2字を修飾
+  ["新記録","しんきろく","S2","新しい記録→新が記録を修飾。"],
+  ["高気圧","こうきあつ","S2","高い気圧→高が気圧を修飾。"],
+  ["旧市街","きゅうしがい","S2","旧い市街→旧が市街を修飾。"],
+  ["真夜中","まよなか","S2","真の夜中→真が夜中を修飾。"],
+  ["大自然","だいしぜん","S2","大きな自然→大が自然を修飾。"],
+  ["超高速","ちょうこうそく","S2","超高い速さ→超が高速を修飾。"],
+  ["全世界","ぜんせかい","S2","全ての世界→全が世界を修飾。"],
+  ["真正面","ましょうめん","S2","真の正面→真が正面を修飾。"],
+  ["大問題","だいもんだい","S2","大きな問題→大が問題を修飾。"],
+  ["新幹線","しんかんせん","S2","新しい幹線→新が幹線を修飾。"],
+  ["大地震","だいじしん","S2","大きな地震→大が地震を修飾。"],
+  ["全力投","ぜんりょくとう","S2","全力での投球→全が力投を修飾。"],
+  ["旧友人","きゅうゆうじん","S2","旧い友人→旧が友人を修飾。"],
+  ["高水準","こうすいじゅん","S2","高い水準→高が水準を修飾。"],
+  // S3: 上2字が下1字を修飾
+  ["運動会","うんどうかい","S3","運動の会→運動が会を修飾。"],
+  ["科学者","かがくしゃ","S3","科学の者→科学が者を修飾。"],
+  ["教育者","きょういくしゃ","S3","教育の者→教育が者を修飾。"],
+  ["政治家","せいじか","S3","政治の専門家→政治が家を修飾。"],
+  ["交通費","こうつうひ","S3","交通の費用→交通が費を修飾。"],
+  ["図書館","としょかん","S3","図書の館→図書が館を修飾。"],
+  ["音楽家","おんがくか","S3","音楽の専門家→音楽が家を修飾。"],
+  ["自動車","じどうしゃ","S3","自動の車→自動が車を修飾。"],
+  ["記念日","きねんび","S3","記念の日→記念が日を修飾。"],
+  ["体育館","たいいくかん","S3","体育の館→体育が館を修飾。"],
+  ["美術館","びじゅつかん","S3","美術の館→美術が館を修飾。"],
+  ["水族館","すいぞくかん","S3","水族（の展示）館→水族が館を修飾。"],
+  ["卒業式","そつぎょうしき","S3","卒業の式→卒業が式を修飾。"],
+  ["入学式","にゅうがくしき","S3","入学の式→入学が式を修飾。"],
+  ["運動場","うんどうじょう","S3","運動の場→運動が場を修飾。"],
+  ["野球部","やきゅうぶ","S3","野球の部→野球が部を修飾。"],
+  ["研究者","けんきゅうしゃ","S3","研究の者→研究が者を修飾。"],
+  ["冒険家","ぼうけんか","S3","冒険の専門家→冒険が家を修飾。"],
+  // S4: 打ち消し
+  ["不可能","ふかのう","S4","不＋可能。可能でないこと。"],
+  ["非常識","ひじょうしき","S4","非＋常識。常識がないこと。"],
+  ["未確認","みかくにん","S4","未＋確認。まだ確認されていない。"],
+  ["無関心","むかんしん","S4","無＋関心。関心がないこと。"],
+  ["不完全","ふかんぜん","S4","不＋完全。完全でないこと。"],
+  ["未解決","みかいけつ","S4","未＋解決。まだ解決されていない。"],
+  ["非公開","ひこうかい","S4","非＋公開。公開でないこと。"],
+  ["無責任","むせきにん","S4","無＋責任。責任がないこと。"],
+  ["不自然","ふしぜん","S4","不＋自然。自然でないこと。"],
+  ["未成年","みせいねん","S4","未＋成年。まだ成年でないこと。"],
+  ["非合法","ひごうほう","S4","非＋合法。法律に合わないこと。"],
+  ["無意識","むいしき","S4","無＋意識。意識がない状態。"],
+  ["不安定","ふあんてい","S4","不＋安定。安定でないこと。"],
+  ["未経験","みけいけん","S4","未＋経験。まだ経験していない。"],
+  ["非現実","ひげんじつ","S4","非＋現実。現実でないこと。"],
+  ["無計画","むけいかく","S4","無＋計画。計画がないこと。"],
+  ["不真面目","ふまじめ","S4","不＋真面目。まじめでないこと。"],
+  ["未発表","みはっぴょう","S4","未＋発表。まだ発表されていない。"],
+  // S5: 下の二字が目的語
+  ["登山家","とざんか","S5","山に登る専門家→登山が後ろを修飾。"],
+  ["作曲家","さっきょくか","S5","曲を作る専門家→作曲が家を修飾。"],
+  ["読書家","どくしょか","S5","本を読む人→読書が家を修飾。"],
+];
+
+// 三字熟語 完成問題（打ち消し語を入れる）
+// [元の語, 読み, 正解の打ち消し語, 解説]
+const SANKUJI_COMPLETE = [
+  ["__可能","かのう","不","「可能」の反対→不可能。"],
+  ["__常識","じょうしき","非","常識を打ち消す→非常識。"],
+  ["__確認","かくにん","未","まだ確認されていない→未確認。"],
+  ["__関心","かんしん","無","関心がない→無関心。"],
+  ["__完全","かんぜん","不","完全でない→不完全。"],
+  ["__解決","かいけつ","未","まだ解決していない→未解決。"],
+  ["__公開","こうかい","非","公開でない→非公開。"],
+  ["__責任","せきにん","無","責任がない→無責任。"],
+  ["__自然","しぜん","不","自然でない→不自然。"],
+  ["__成年","せいねん","未","まだ成年でない→未成年。"],
+  ["__合法","ごうほう","非","法律に合わない→非合法。"],
+  ["__意識","いしき","無","意識がない→無意識。"],
+  ["__安定","あんてい","不","安定でない→不安定。"],
+  ["__経験","けいけん","未","まだ経験していない→未経験。"],
+  ["__現実","げんじつ","非","現実でない→非現実。"],
+  ["__計画","けいかく","無","計画がない→無計画。"],
+  ["__発表","はっぴょう","未","まだ発表されていない→未発表。"],
+  ["__条件","じょうけん","無","条件がない→無条件。"],
+  ["__規則","きそく","不","規則に合わない→不規則。"],
+  ["__道徳","どうとく","非","道徳に合わない→非道徳。"],
+  ["__作法","さほう","不","作法に合わない→不作法。"],
+  ["__用意","ようい","不","用意がない→不用意。"],
+  ["__衛生","えいせい","不","衛生的でない→不衛生。"],
+  ["__効果","こうか","無","効果がない→無効果。"],
+  ["__人道","じんどう","非","人道に反する→非人道。"],
+];
+</script>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const STORAGE_KEY = "sankuji_best_streak";
+const Q_OPTIONS = [5, 10, 15, 20];
+const BTN = "linear-gradient(135deg,#0ea5e9,#0369a1)";
+
+function pickProblems(diff, total) {
+  let pool = [];
+  const typeKeys = Object.keys(SANKUJI_TYPES);
+
+  if (diff === "kosei" || diff === "mix") {
+    SANKUJI_STRUCTURE.forEach(([word, read, type, exp]) => {
+      const opts = shuffle(typeKeys.map(k => SANKUJI_TYPES[k]));
+      pool.push({
+        qtype:"select", color:"#0369a1",
+        title:`三字熟語の組み立て`,
+        word, read,
+        question:`「${word}（${read}）」の組み立てはどれですか？`,
+        options: opts,
+        answer: opts.indexOf(SANKUJI_TYPES[type]),
+        explanation:`【${SANKUJI_TYPES[type]}】\n${exp}`,
+      });
+    });
+  }
+
+  if (diff === "uchikeshi" || diff === "mix") {
+    SANKUJI_COMPLETE.forEach(([blank, read, correct, exp]) => {
+      const all = ["不","無","非","未"];
+      const wrongs = all.filter(x=>x!==correct);
+      const opts = shuffle([correct, ...wrongs]);
+      const word = blank.replace("__", correct);
+      const displayWord = blank.replace("__", "□");
+      pool.push({
+        qtype:"select", color:"#0891b2",
+        title:`打ち消し語を入れよう`,
+        word: displayWord,
+        read,
+        question:`「${displayWord}（${read}）」の□に入る打ち消しの漢字はどれですか？`,
+        options: opts,
+        answer: opts.indexOf(correct),
+        explanation:`正解：「${word}」\n${exp}`,
+      });
+    });
+  }
+
+  const shuffled = shuffle(pool);
+  const result = [];
+  const used = new Set();
+  while(result.length < total) {
+    const idx = Math.floor(Math.random() * shuffled.length);
+    if(!used.has(idx) || shuffled.length < total) {
+      used.add(idx);
+      result.push({...shuffled[idx]});
+    }
+  }
+  return result;
+}
+
+function SelectAnswer({ problem, checked, userAnswer, onAnswer }) {
+  return (
+    <div className="select-grid">
+      {problem.options.map((opt, i) => {
+        let cls = "select-btn";
+        if(checked){
+          if(i===problem.answer) cls+=" show-correct";
+          else if(i===userAnswer) cls+=" wrong";
+        }
+        return (
+          <button key={i} className={cls} onClick={()=>!checked&&onAnswer(i)}>
+            <span style={{color:"#6b7280",marginRight:"8px",fontWeight:"normal"}}>{"①②③④⑤"[i]}</span>
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function App() {
+  const [mode,setMode]     = useState("setup");
+  const [diff,setDiff]     = useState("mix");
+  const [totalQ,setTotalQ] = useState(10);
+  const [problems,setProblems] = useState([]);
+  const [current,setCurrent]   = useState(0);
+  const [score,setScore]       = useState(0);
+  const [streak,setStreak]     = useState(0);
+  const [best,setBest]         = useState(0);
+  const [checked,setChecked]   = useState(false);
+  const [userAnswer,setUserAnswer] = useState(null);
+  const [celeb,setCeleb]       = useState(false);
+  const [isCorrect,setIsCorrect] = useState(false);
+
+  useEffect(()=>{
+    try{const s=localStorage.getItem(STORAGE_KEY);if(s)setBest(parseInt(s)||0);}catch(_){}
+    setReviewBank(JSON.parse(localStorage.getItem('rv_sankuji')||'[]'));
+  },[]);
+  const saveBest=v=>{try{localStorage.setItem(STORAGE_KEY,String(v));}catch(_){}};
+
+  const startQuiz=()=>{
+    setProblems(pickProblems(diff,totalQ));
+    setCurrent(0);setScore(0);setStreak(0);
+    setChecked(false);setUserAnswer(null);setCeleb(false);
+    setMode("quiz");
+  };
+
+  const problem=problems[current]||null;
+
+  const handleAnswer=ans=>{
+    if(checked)return;
+    setUserAnswer(ans);setChecked(true);
+    const ok=ans===problem.answer;
+    setIsCorrect(ok);
+    if(ok){
+      setScore(s=>s+1);const ns=streak+1;setStreak(ns);
+      if(ns>best){setBest(ns);saveBest(ns);}
+      setCeleb(true);setTimeout(()=>setCeleb(false),1800);
+      try{const _b=JSON.parse(localStorage.getItem('rv_sankuji')||'[]');const _id=(problem.title||'')+'|'+(problem.question||'');const _i=_b.findIndex(x=>x._id===_id);if(_i>=0){_b[_i].ok=(_b[_i].ok||0)+1;if(_b[_i].ok>=5)_b.splice(_i,1);localStorage.setItem('rv_sankuji',JSON.stringify(_b));}setReviewBank([..._b]);}catch(_e){}
+    }else{setStreak(0);
+      try{const _b=JSON.parse(localStorage.getItem('rv_sankuji')||'[]');const _id=(problem.title||'')+'|'+(problem.question||'');if(!_b.find(x=>x._id===_id)){const _s={...problem,_id,ok:0};_b.push(_s);localStorage.setItem('rv_sankuji',JSON.stringify(_b));}setReviewBank([..._b]);}catch(_e){}}
+  };
+
+  const nextQuestion=()=>{
+    const _end=current+1>=problems.length;
+    if(_end&&mode==="review"){const _b=JSON.parse(localStorage.getItem('rv_sankuji')||'[]');setReviewBank([..._b]);if(_b.length>0){startReview();}else{setMode("graduated");}return;}
+    if(_end){setMode("result");return;}
+    setCurrent(c=>c+1);
+    setChecked(false);setUserAnswer(null);setCeleb(false);
+  };
+
+  const progress = problem ? (current/problems.length)*100 : 0;
+
+  const DIFF_OPTIONS = [
+    {key:"kosei",    emoji:"🔧", name:"組み立て分類",      desc:"対等・修飾・打ち消しなど5分類"},
+    {key:"uchikeshi",emoji:"❌", name:"打ち消し語を選ぶ",  desc:"不・無・非・未のどれが入る？"},
+    {key:"mix",      emoji:"⭐", name:"ミックス",           desc:"全タイプからランダム出題"},
+  ];
+
+  if(mode==="setup") return(
+    <div className="setup-wrap" style={{background:"#f0f9ff"}}>
+      <div className="setup-card">
+        <div className="setup-emoji">📗</div>
+        <h1 className="setup-title" style={{color:"#0c4a6e"}}>三字熟語クイズ</h1>
+        <p className="setup-sub">組み立て・打ち消し（中学入試レベル）</p>
+                <div style={{marginBottom:"16px"}}>
+          <button onClick={()=>{if(reviewBank.length>0)startReview();}}
+            style={{width:"100%",padding:"14px 16px",borderRadius:"14px",
+              cursor:reviewBank.length>0?"pointer":"default",
+              border:reviewBank.length>0?"2px solid #ef4444":"2px solid #e5e7eb",
+              background:reviewBank.length>0?"#fef2f2":"#f9fafb",
+              display:"flex",alignItems:"center",justifyContent:"space-between",
+              fontFamily:"inherit",opacity:reviewBank.length===0?0.45:1}}>
+            <div style={{textAlign:"left"}}>
+              <div style={{fontWeight:"900",fontSize:"15px",color:reviewBank.length>0?"#b91c1c":"#374151"}}>{"📚 復習モード"}</div>
+              {reviewBank.length>0&&<div style={{fontSize:"11px",color:"#ef4444",marginTop:"2px"}}>{"タップして今すぐ開始！"}</div>}
+            </div>
+            <span style={{background:reviewBank.length>0?"#ef4444":"#d1d5db",color:"#fff",borderRadius:"99px",padding:"4px 12px",fontSize:"13px",fontWeight:"bold"}}>
+              {reviewBank.length>0?reviewBank.length+"問":"なし"}
+            </span>
+          </button>
+          {reviewBank.length===0&&<div style={{fontSize:"11px",color:"#9ca3af",textAlign:"center",marginTop:"4px"}}>{"間違えた問題が溜まるとここで復習できます"}</div>}
+        </div>
+        {best>0&&<div className="best-badge" style={{background:"#e0f2fe",border:"1.5px solid #38bdf8",color:"#0c4a6e"}}>🏆 最高連続記録：<strong>{best}問</strong></div>}
+        <div className="qcount-section">分野を選ぶ</div>
+        <div className="diff-btn-row">
+          {DIFF_OPTIONS.map(d=>(
+            <button key={d.key} className="diff-card-btn"
+              style={{background:diff===d.key?"#e0f2fe":"#f9fafb",
+                      border:diff===d.key?"2px solid #0ea5e9":"2px solid #e5e7eb",
+                      boxShadow:diff===d.key?"0 3px 0 #0ea5e9":"none"}}
+              onClick={()=>setDiff(d.key)}>
+              <span style={{fontSize:"22px"}}>{d.emoji}</span>
+              <div>
+                <div className="diff-name" style={{color:diff===d.key?"#0c4a6e":"#1f2937"}}>{d.name}</div>
+                <div className="diff-desc">{d.desc}</div>
+              </div>
+              {diff===d.key&&<span style={{marginLeft:"auto",fontSize:"18px"}}>✅</span>}
+            </button>
+          ))}
+        </div>
+        <div className="qcount-section">何問やる？</div>
+        <div className="qcount-grid">
+          {Q_OPTIONS.map(n=>(
+            <button key={n} className="qcount-btn"
+              style={{border:totalQ===n?"2px solid #0ea5e9":"2px solid #dee2e6",
+                      background:totalQ===n?"#0ea5e9":"#f8f9fa",
+                      color:totalQ===n?"#fff":"#495057",
+                      boxShadow:totalQ===n?"0 3px 0 #0369a1":"none"}}
+              onClick={()=>setTotalQ(n)}>{n}問</button>
+          ))}
+        </div>
+        <button className="start-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #075985"}} onClick={startQuiz}>スタート！ 🚀</button>
+      </div>
+    </div>
+  );
+
+
+  if(mode === "graduated") return (
+    <div className="setup-wrap" style={{background:"#f0fdf4"}}>
+      <div className="setup-card">
+        <div className="setup-emoji">{"🎓"}</div>
+        <h2 className="setup-title" style={{color:"#166534"}}>{"復習バンク卒業！"}</h2>
+        <p style={{fontSize:"14px",color:"#16a34a",marginBottom:"16px",fontWeight:"bold"}}>{"すべての問題を5回正解しました！"}</p>
+        <div style={{background:"#dcfce7",borderRadius:"14px",padding:"16px",marginBottom:"16px",fontSize:"13px",color:"#166534",lineHeight:"1.8"}}>{"🌟 間違えた問題をすべてマスターしました！"}</div>
+        <button className="start-btn"
+          style={{background:"linear-gradient(135deg,#4ade80,#22c55e)",color:"#fff",boxShadow:"0 4px 0 #16a34a"}}
+          onClick={()=>setMode("setup")}>{"もどる"}</button>
+      </div>
+    </div>
+  );
+  if(mode==="result"){
+    const pct=Math.round((score/problems.length)*100);
+    return(
+      <div className="setup-wrap" style={{background:"#f0f9ff"}}>
+        <div className="setup-card">
+          <div className="setup-emoji">{pct===100?"🏆":pct>=70?"🎉":"💪"}</div>
+          <h2 className="setup-title" style={{color:"#0c4a6e"}}>おわり！</h2>
+          <p className="result-score">{problems.length}問中 <span className="result-big" style={{color:"#0ea5e9"}}>{score}</span> 問正解</p>
+          <div className="pct-bar-bg" style={{background:"#e0f2fe"}}><div className="pct-bar-fill" style={{background:BTN,width:`${pct}%`}}/></div>
+          <p className="pct-text">{pct}%</p>
+          <div className="streak-result-row">
+            <div className="streak-result-box"><div className="streak-result-label">この回の最高連続</div><div className="streak-result-val" style={{color:"#ef4444"}}>🔥 {streak}問</div></div>
+            <div className="streak-result-box"><div className="streak-result-label">歴代最高連続</div><div className="streak-result-val" style={{color:"#f59f00"}}>🏆 {best}問</div></div>
+          </div>
+          <div style={{display:"flex",gap:"8px",marginTop:"16px"}}>
+            <button className="start-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #075985"}} onClick={startQuiz}>もう一度</button>
+            <button className="start-btn" style={{background:"#868e96",color:"#fff",boxShadow:"0 4px 0 #495057"}} onClick={()=>setMode("setup")}>設定へ</button>
+          {reviewBank.length>0&&(
+            <button className="start-btn"
+              style={{background:"linear-gradient(135deg,#ef4444,#dc2626)",color:"#fff",
+                boxShadow:"0 4px 0 #991b1b",marginTop:"8px",width:"100%"}}
+              onClick={startReview}>{"続けて復習する 📚 ("}{reviewBank.length}{"問)"}</button>
+          )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if(!problem) return null;
+
+  return(
+    <div className="rika-root">
+      {celeb&&(
+        <div className="celeb-overlay">
+          <div className="celeb-box">
+            <div className="celeb-emoji">🎉</div>
+            <div className="celeb-text" style={{color:"#0c4a6e"}}>せいかい！</div>
+            <div className="celeb-stars">{randomStars(5)}</div>
+            {streak>=3&&<div className="celeb-streak" style={{background:"#0ea5e9"}}>🔥 {streak}れんぞく！</div>}
+            {streak===best&&streak>1&&<div className="celeb-streak" style={{background:"#f59f00",marginTop:"6px"}}>🏆 新記録！</div>}
+          </div>
+        </div>
+      )}
+      <div className="quiz-header">
+        <button className="back-btn" onClick={()=>setMode("setup")}>← もどる</button>
+        <span className="q-label">Q{current+1}<span className="q-total">/{problems.length}</span></span>
+        <span className="streak-badge">🔥{streak}</span>
+      </div>
+      <div className="progress-bar-bg">
+        <div className="progress-fill" style={{background:problem.color,width:`${progress}%`}}/>
+      </div>
+      <div className="problem-card" style={{borderTop:`5px solid ${problem.color}`}}>
+        <div style={{fontWeight:"900",fontSize:"12px",color:problem.color,marginBottom:"4px"}}>{problem.title}</div>
+        <div style={{fontSize:"28px",fontWeight:"900",textAlign:"center",padding:"12px 0 8px",letterSpacing:"0.1em"}}>{problem.word}</div>
+        <div style={{textAlign:"center",fontSize:"13px",color:"#6b7280",marginBottom:"12px"}}>（{problem.read}）</div>
+        <div style={{fontSize:"15px",fontWeight:"bold",lineHeight:"1.8",marginBottom:"12px"}}>{problem.question}</div>
+        <SelectAnswer problem={problem} checked={checked} userAnswer={userAnswer} onAnswer={handleAnswer}/>
+      </div>
+      {checked&&(
+        <>
+          <div style={{textAlign:"center",fontSize:"18px",fontWeight:"900",color:isCorrect?"#10b981":"#ef4444"}}>
+            {isCorrect?"⭕ 正解！":"❌ 不正解"}
+          </div>
+          <div className="explanation-card">
+            <div style={{fontWeight:"900",marginBottom:"4px",fontSize:"12px",color:"#92400e"}}>💡 解説</div>
+            {problem.explanation.split("\n").map((line,i)=><div key={i}>{line}</div>)}
+          </div>
+          <button className="next-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #075985"}} onClick={nextQuestion}>
+            {current+1>=problems.length?"結果を見る 🎉":"つぎへ →"}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
